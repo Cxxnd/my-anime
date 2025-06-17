@@ -2,12 +2,18 @@ import { getAnime } from "@/libs/service-api";
 import Image from "next/image";
 import CollectionsButton from "@/components/AnimeList/CollectionsButton";
 import { authUserSession } from "@/libs/autlibs";
+import CommentInput from "@/components/AnimeList/CommentInput";
+import CommentsBox from "@/components/AnimeList/CommentsBox";
+import prisma from "@/libs/prisma";
 
 const page = async props => {
     const params = await props.params;
     const { id } = params;
     const anime = await getAnime(`manga/${id}`);
     const user = await authUserSession();
+    const collection = await prisma.Collections.findFirst({
+            where: {user_email: user?.email, mal_id: Number(id)}
+        })
 
 
     return(
@@ -16,7 +22,8 @@ const page = async props => {
             <h3>
                 {anime.data.title} - {anime.data.year}   {anime.data.title_japanese}
             </h3>
-            <CollectionsButton mal_id={id} user_email={user?.email}/>
+            {collection && <p className="text-sm text-color-accent flex justify-end items-end">Already in your collection</p>}
+            {!collection && user && <CollectionsButton mal_id={id} user_email={user?.email} anime_title={anime.data.title} anime_image={anime.data.images.webp.image_url}/>}
         </div>
         <div className="pt-4 px-4 gap-3 flex text-color-accent overflow-x-auto">
             <div className="w-36 flex flex-col justify-center items-center border border-blue-700 p-2">
@@ -70,6 +77,11 @@ const page = async props => {
             className="w-full rounded-xl object-cover"
             />
             <p className="text-justify text-xl">{anime.data.synopsis}</p>
+        </div>
+        <div className="p-4">
+            { user && <CommentInput mal_id={id} username={user?.name} user_email={user?.email} anime_title={anime.data.title}/> }
+            <h3 className="text-color-primary text-2xl py-3">Comments</h3>
+            <CommentsBox mal_id={id}/>
         </div>
         </>
     );
